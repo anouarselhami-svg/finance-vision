@@ -76,6 +76,15 @@
         .h-scroll .h-item.wide { min-width: 200px; }
         .h-scroll::-webkit-scrollbar { height: 8px; }
         .h-scroll::-webkit-scrollbar-thumb { background: rgba(15,23,42,0.12); border-radius: 999px; }
+
+        /* Compact stats cards on small screens and force two per row */
+        @media (max-width: 640px) {
+            #statsGrid { grid-template-columns: repeat(2, 1fr) !important; }
+            #statsGrid .stat-card { padding: 0.75rem !important; border-radius: 0.75rem !important; }
+            #statsGrid .stat-card .stat-title { font-size: 10px !important; }
+            #statsGrid .stat-card .stat-value { font-size: 1rem !important; font-weight: 800 !important; }
+            #statsGrid .stat-card .p-2 { padding: 0.35rem !important; }
+        }
         </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen pb-20">
@@ -114,7 +123,7 @@
 
         <!-- Cartes Statistiques -->
         <div id="expenseAlert" class="hidden mb-6"></div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8" id="statsGrid">
+        <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8" id="statsGrid">
             <!-- Injecté par JS -->
         </div>
 
@@ -530,12 +539,12 @@
 
         function statCard(title, val, icon, color, bg, isCurr = true) {
             return `
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 transition-all hover:shadow-md group">
+                <div class="stat-card bg-white p-5 rounded-2xl shadow-sm border border-slate-100 transition-all hover:shadow-md group">
                     <div class="flex items-center justify-between mb-3">
-                        <span class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">${title}</span>
+                        <span class="stat-title text-slate-400 text-[10px] font-bold uppercase tracking-widest">${title}</span>
                         <div class="p-2 rounded-xl ${bg} ${color} group-hover:scale-110 transition-transform"><i data-lucide="${icon}" class="w-4 h-4"></i></div>
                     </div>
-                    <div class="text-2xl font-black tracking-tight ${color}">${isCurr ? formatMAD(val) : val}</div>
+                    <div class="stat-value text-2xl font-black tracking-tight ${color}">${isCurr ? formatMAD(val) : val}</div>
                 </div>
             `;
         }

@@ -34,6 +34,12 @@
             .h-scroll .h-item.wide { min-width: 200px; }
             .h-scroll::-webkit-scrollbar { height: 8px; }
             .h-scroll::-webkit-scrollbar-thumb { background: rgba(15,23,42,0.12); border-radius: 999px; }
+            /* Ensure weekly charts wrap on small screens to avoid horizontal overflow */
+            #weeklyCharts { display: flex; gap: 12px; flex-wrap: wrap; }
+            #weeklyCharts > * { flex: 1 1 300px; min-width: 0; }
+            @media (max-width: 640px) {
+                #weeklyCharts > * { width: 100% !important; }
+            }
         </style>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -284,8 +290,10 @@
                 <div class="font-semibold">${monthName}</div>
                 <button onclick="changeMonth(1)" class="px-2 py-1 bg-slate-100 rounded">▶</button>
             </div>
-            <div class="flex items-center gap-2">${weekButtons}</div>
+            <div class="h-scroll" role="tablist" aria-label="Semaines">${weekButtons}</div>
         `;
+        // initialize horizontal scrolling behaviour for the dynamic week buttons
+        enableHScrolls();
     }
 
     function renderWeekly() {
