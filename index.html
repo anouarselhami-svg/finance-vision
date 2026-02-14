@@ -19,6 +19,23 @@
         ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
     </style>
+        <style>
+        /* Mobile-specific tweaks to improve usability on small screens */
+        @media (max-width: 640px) {
+            .max-w-6xl { max-width: 100% !important; padding-left: 1rem; padding-right: 1rem; }
+            .p-6 { padding: 1rem !important; }
+            .rounded-2xl { border-radius: 12px !important; }
+            input[type="text"], input[type="number"], input[type="date"], select, button { font-size: 16px !important; }
+            button[class*="bg-emerald-600"] { width: 100% !important; display: block; }
+            .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4 { grid-template-columns: 1fr !important; }
+            nav .max-w-6xl { padding-left: 0.75rem; padding-right:0.75rem; }
+            #chartContainer, #incomeChartContainer { padding: 0.5rem; }
+            /* Make floating coach and audit boxes full-width-ish on mobile */
+            #coachWindow, #aiAuditBox { width: calc(100% - 2rem) !important; right: 1rem !important; left: 1rem !important; }
+            /* Increase hit targets */
+            .p-2, .p-3, .p-4 { padding: 0.75rem !important; }
+        }
+        </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen pb-20">
 
