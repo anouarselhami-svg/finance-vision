@@ -2,10 +2,40 @@
 <html lang="fr">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1.0" />
     <title>Listes de tâches — Finance Vision MA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+      /* Global responsive fixes — match index.html behaviour */
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { max-width: 100%; overflow-x: hidden; -webkit-text-size-adjust: 100%; }
+      img, svg, iframe { max-width: 100%; height: auto; }
+      input, select, button, textarea { min-width: 0; }
+      header { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+      @media (max-width: 640px) {
+        .max-w-4xl { max-width: 100% !important; padding-left: 1rem; padding-right: 1rem; }
+        .p-6 { padding: 1rem !important; }
+        input, select, button { font-size: 16px !important; }
+        .grid { grid-template-columns: 1fr !important; }
+        .p-2, .p-3, .p-4 { padding: 0.75rem !important; }
+        table { font-size: 13px; }
+      }
+      @media (max-width: 420px) {
+        .grid { gap: 0.5rem !important; }
+        .text-2xl { font-size: 1.1rem !important; }
+        .max-w-4xl { padding-left: 0.5rem; padding-right: 0.5rem; }
+        .p-4 { padding: 0.5rem !important; }
+      }
+
+      /* Horizontal sliding form fields */
+      .h-scroll { display: flex; gap: 0.5rem; overflow-x: auto; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; padding: 0.25rem 0.5rem; }
+      .h-scroll > * { scroll-snap-align: start; flex: 0 0 auto; }
+      .h-scroll .h-item { min-width: 120px; }
+      .h-scroll .h-item.wide { min-width: 200px; }
+      .h-scroll::-webkit-scrollbar { height: 8px; }
+      .h-scroll::-webkit-scrollbar-thumb { background: rgba(15,23,42,0.12); border-radius: 999px; }
+    </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
     <div class="max-w-4xl mx-auto p-6">
@@ -135,19 +165,32 @@
       let dayOptions = '';
       for (let d = 1; d <= days; d++) dayOptions += `<option value="${d}">${d}</option>`;
       wrap.innerHTML = `
-        <div class="flex gap-2">
-          <select id="newtask-day" class="px-2 py-1 border rounded">${dayOptions}</select>
-          <input id="newtask-text" placeholder="Tâche..." class="flex-1 px-2 py-1 rounded border" />
-          <select id="newtask-priority" class="px-2 py-1 border rounded">
-            <option value="Low">Low</option>
-            <option value="Medium" selected>Medium</option>
-            <option value="High">High</option>
-          </select>
-          <input id="newtask-category" placeholder="Catégorie" class="px-2 py-1 rounded border" />
-          <input id="newtask-notes" placeholder="Notes" class="px-2 py-1 rounded border" />
-          <button onclick="addTask()" class="px-3 py-1 bg-emerald-600 text-white rounded">Ajouter</button>
+        <div class="h-scroll" role="group" aria-label="Champs d'ajout de tâche">
+          <div class="h-item">
+            <select id="newtask-day" class="px-2 py-1 border rounded">${dayOptions}</select>
+          </div>
+          <div class="h-item wide">
+            <input id="newtask-text" placeholder="Tâche..." class="w-full px-2 py-1 rounded border" />
+          </div>
+          <div class="h-item">
+            <select id="newtask-priority" class="px-2 py-1 border rounded">
+              <option value="Low">Low</option>
+              <option value="Medium" selected>Medium</option>
+              <option value="High">High</option>
+            </select>
+          </div>
+          <div class="h-item">
+            <input id="newtask-category" placeholder="Catégorie" class="px-2 py-1 rounded border" />
+          </div>
+          <div class="h-item">
+            <input id="newtask-notes" placeholder="Notes" class="px-2 py-1 rounded border" />
+          </div>
+          <div class="h-item">
+            <button onclick="addTask()" class="px-3 py-1 bg-emerald-600 text-white rounded">Ajouter</button>
+          </div>
         </div>
       `;
+      enableHScrolls();
     }
 
     function render() {
@@ -206,7 +249,34 @@
       el.classList.toggle('hidden');
     }
 
-    window.onload = () => { render(); };
+    // Enable pointer-drag scrolling for horizontal scroll containers
+    function enableHScrolls() {
+      document.querySelectorAll('.h-scroll').forEach(container => {
+        if (container.__hScrollInit) return;
+        container.__hScrollInit = true;
+        let isDown = false;
+        let startX; let scrollLeft;
+        container.style.cursor = 'grab';
+        container.addEventListener('pointerdown', (e) => {
+          isDown = true;
+          container.setPointerCapture(e.pointerId);
+          startX = e.clientX;
+          scrollLeft = container.scrollLeft;
+          container.style.cursor = 'grabbing';
+        });
+        container.addEventListener('pointermove', (e) => {
+          if (!isDown) return;
+          const dx = e.clientX - startX;
+          container.scrollLeft = scrollLeft - dx;
+        });
+        const stop = (e) => { if (!isDown) return; isDown = false; try { container.releasePointerCapture && container.releasePointerCapture(e.pointerId); } catch(e){} container.style.cursor = 'grab'; };
+        container.addEventListener('pointerup', stop);
+        container.addEventListener('pointercancel', stop);
+        container.addEventListener('pointerleave', stop);
+      });
+    }
+
+    window.onload = () => { render(); enableHScrolls(); };
   </script>
 </body>
 </html>

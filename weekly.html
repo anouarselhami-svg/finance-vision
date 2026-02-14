@@ -2,10 +2,39 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0,minimum-scale=1.0">
     <title>Weekly Tracker — Finance Vision MA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+        <style>
+            /* Global responsive fixes copied from index.html */
+            *, *::before, *::after { box-sizing: border-box; }
+            html, body { max-width: 100%; overflow-x: hidden; -webkit-text-size-adjust: 100%; }
+            img, svg, iframe { max-width: 100%; height: auto; }
+            input, select, button, textarea { min-width: 0; }
+            header { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+            @media (max-width: 640px) {
+                .max-w-4xl { max-width: 100% !important; padding-left: 1rem; padding-right: 1rem; }
+                .p-6 { padding: 1rem !important; }
+                input, select, button { font-size: 16px !important; }
+                .grid { grid-template-columns: 1fr !important; }
+                .p-2, .p-3, .p-4 { padding: 0.75rem !important; }
+                table { font-size: 13px; }
+            }
+            @media (max-width: 420px) {
+                .grid { gap: 0.5rem !important; }
+                .text-2xl { font-size: 1.1rem !important; }
+                .max-w-4xl { padding-left: 0.5rem; padding-right: 0.5rem; }
+                .p-4 { padding: 0.5rem !important; }
+            }
+            /* Horizontal sliding form fields */
+            .h-scroll { display: flex; gap: 0.5rem; overflow-x: auto; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; padding: 0.25rem 0.5rem; }
+            .h-scroll > * { scroll-snap-align: start; flex: 0 0 auto; }
+            .h-scroll .h-item { min-width: 120px; }
+            .h-scroll .h-item.wide { min-width: 200px; }
+            .h-scroll::-webkit-scrollbar { height: 8px; }
+            .h-scroll::-webkit-scrollbar-thumb { background: rgba(15,23,42,0.12); border-radius: 999px; }
+        </style>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -206,6 +235,33 @@
         el.classList.toggle('hidden');
     }
 
+        // Enable pointer-drag scrolling for horizontal scroll containers
+        function enableHScrolls() {
+            document.querySelectorAll('.h-scroll').forEach(container => {
+                if (container.__hScrollInit) return;
+                container.__hScrollInit = true;
+                let isDown = false;
+                let startX; let scrollLeft;
+                container.style.cursor = 'grab';
+                container.addEventListener('pointerdown', (e) => {
+                    isDown = true;
+                    container.setPointerCapture && container.setPointerCapture(e.pointerId);
+                    startX = e.clientX;
+                    scrollLeft = container.scrollLeft;
+                    container.style.cursor = 'grabbing';
+                });
+                container.addEventListener('pointermove', (e) => {
+                    if (!isDown) return;
+                    const dx = e.clientX - startX;
+                    container.scrollLeft = scrollLeft - dx;
+                });
+                const stop = (e) => { if (!isDown) return; isDown = false; try { container.releasePointerCapture && container.releasePointerCapture(e.pointerId); } catch(e){} container.style.cursor = 'grab'; };
+                container.addEventListener('pointerup', stop);
+                container.addEventListener('pointercancel', stop);
+                container.addEventListener('pointerleave', stop);
+            });
+        }
+
     function renderMonthControls() {
         const header = document.querySelector('.max-w-4xl > .flex');
         if (!header) return;
@@ -253,9 +309,13 @@
                     ${w.habits.map((h, hi) => `<label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" onchange="toggleHabit(${idx},${hi}, this.checked)" ${ (typeof h === 'object' && h.completed) ? 'checked' : '' }/> <span>${typeof h === 'string' ? h : h.text}</span></label>`).join('')}
                     <div class="mt-2 mb-1 text-xs text-slate-400">Tasks</div>
                     ${w.tasks.map((t, ti) => `<label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" onchange="toggleWeeklyTask(${idx},${ti}, this.checked)" ${t.completed ? 'checked' : ''}/> <span>${t.title}</span></label>`).join('')}
-                    <div class="flex gap-2 mt-3">
-                        <input type="text" id="newTask-${idx}" placeholder="Nouvelle tâche..." class="flex-1 min-w-0 px-2 py-1 rounded border text-sm">
-                        <button onclick="addWeeklyTask(${idx})" class="px-2 py-0.5 text-xs h-8 bg-emerald-600 text-white rounded shrink-0">Ajouter</button>
+                    <div class="h-scroll mt-3" role="group" aria-label="Ajouter une tâche">
+                        <div class="h-item wide">
+                            <input type="text" id="newTask-${idx}" placeholder="Nouvelle tâche..." class="w-full px-2 py-1 rounded border text-sm" />
+                        </div>
+                        <div class="h-item">
+                            <button onclick="addWeeklyTask(${idx})" class="px-2 py-0.5 text-xs h-8 bg-emerald-600 text-white rounded shrink-0">Ajouter</button>
+                        </div>
                     </div>
                 </div>
             `;
@@ -364,7 +424,7 @@
         showToast('Weekly réinitialisé.');
     }
 
-    window.onload = () => { renderWeekly(); lucide.createIcons(); };
+    window.onload = () => { renderWeekly(); lucide.createIcons(); enableHScrolls(); };
 </script>
 </body>
 </html>

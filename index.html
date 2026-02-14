@@ -69,6 +69,13 @@
             .px-6 { padding-left: 1rem !important; padding-right: 1rem !important; }
             .px-4 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
         }
+        /* Horizontal sliding form fields */
+        .h-scroll { display: flex; gap: 0.5rem; overflow-x: auto; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; padding: 0.25rem 0.5rem; }
+        .h-scroll > * { scroll-snap-align: start; flex: 0 0 auto; }
+        .h-scroll .h-item { min-width: 120px; }
+        .h-scroll .h-item.wide { min-width: 200px; }
+        .h-scroll::-webkit-scrollbar { height: 8px; }
+        .h-scroll::-webkit-scrollbar-thumb { background: rgba(15,23,42,0.12); border-radius: 999px; }
         </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen pb-20">
@@ -123,15 +130,25 @@
                         <button onclick="setType('income')" id="typeBtnIncome" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white shadow-sm text-emerald-600">Revenu</button>
                         <button onclick="setType('expense')" id="typeBtnExpense" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500">Dépense</button>
                     </div>
-                    <div class="space-y-4">
-                        <input type="text" id="descInput" placeholder="Description (ex: Loyer...)" class="w-full px-4 py-2 bg-slate-50 rounded-xl border-none outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
-                        <div class="grid grid-cols-2 gap-4">
-                            <input type="number" id="amountInput" placeholder="Montant DH" class="w-full px-4 py-2 bg-slate-50 rounded-xl border-none outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
-                            <input type="date" id="dateInput" class="w-full px-4 py-2 bg-slate-50 rounded-xl border-none text-sm text-slate-500">
+                    <div class="h-scroll" role="group" aria-label="Ajouter un flux">
+                        <div class="h-item wide">
+                            <input type="text" id="descInput" placeholder="Description (ex: Loyer...)" class="w-full px-4 py-2 bg-slate-50 rounded-xl border-none outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
                         </div>
-                        <select id="catInput" class="w-full px-4 py-2 bg-slate-50 rounded-xl border-none text-sm"></select>
-                        <button onclick="addTransaction()" class="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg transition-all active:scale-95">Enregistrer</button>
-                        <button onclick="clearAll()" class="w-full mt-2 py-2 bg-rose-50 text-rose-600 rounded-xl font-semibold border border-rose-100 hover:bg-rose-100 transition-all">Clear All (Supprimer tout)</button>
+                        <div class="h-item">
+                            <input type="number" id="amountInput" placeholder="Montant DH" class="w-full px-4 py-2 bg-slate-50 rounded-xl border-none outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                        </div>
+                        <div class="h-item">
+                            <input type="date" id="dateInput" class="w-full px-4 py-2 bg-slate-50 rounded-xl border-none text-sm text-slate-500" />
+                        </div>
+                        <div class="h-item">
+                            <select id="catInput" class="w-full px-4 py-2 bg-slate-50 rounded-xl border-none text-sm"></select>
+                        </div>
+                        <div class="h-item">
+                            <button onclick="addTransaction()" class="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg transition-all active:scale-95">Enregistrer</button>
+                        </div>
+                        <div class="h-item">
+                            <button onclick="clearAll()" class="w-full mt-2 py-2 bg-rose-50 text-rose-600 rounded-xl font-semibold border border-rose-100 hover:bg-rose-100 transition-all">Clear All</button>
+                        </div>
                     </div>
                 </div>
 
@@ -157,9 +174,17 @@
                         <i data-lucide="target" class="text-emerald-600"></i> Plan d'épargne (Objectif mensuel)
                     </h2>
                     <div class="mb-4 flex gap-2">
-                        <input type="text" id="goalName" placeholder="Nom de l'objectif (ex: Vacances)" class="flex-1 px-4 py-2 bg-slate-50 rounded-xl text-sm outline-none">
-                        <input type="number" id="goalAmount" placeholder="Montant total DH" class="w-40 px-4 py-2 bg-slate-50 rounded-xl text-sm outline-none">
-                        <button onclick="createGoal()" class="px-4 py-2 bg-emerald-600 text-white rounded-xl">Créer</button>
+                                                <div class="h-scroll" style="width:100%">
+                                                    <div class="h-item wide">
+                                                        <input type="text" id="goalName" placeholder="Nom de l'objectif (ex: Vacances)" class="w-full px-4 py-2 bg-slate-50 rounded-xl text-sm outline-none" />
+                                                    </div>
+                                                    <div class="h-item">
+                                                        <input type="number" id="goalAmount" placeholder="Montant total DH" class="w-full px-4 py-2 bg-slate-50 rounded-xl text-sm outline-none" />
+                                                    </div>
+                                                    <div class="h-item">
+                                                        <button onclick="createGoal()" class="px-4 py-2 bg-emerald-600 text-white rounded-xl">Créer</button>
+                                                    </div>
+                                                </div>
                     </div>
                     <div id="goalsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
                 </div>
@@ -230,6 +255,7 @@
             render();
             lucide.createIcons();
             addCoachMessage('assistant', "Bonjour ! Je suis votre coach financier expert pour le Maroc. Comment puis-je vous aider ?");
+            enableHScrolls();
         }
 
         function setType(type) {
@@ -331,6 +357,33 @@
             if (!el) return;
             el.classList.toggle('hidden');
         }
+
+                // Enable pointer-drag scrolling for horizontal scroll containers
+                function enableHScrolls() {
+                    document.querySelectorAll('.h-scroll').forEach(container => {
+                        if (container.__hScrollInit) return;
+                        container.__hScrollInit = true;
+                        let isDown = false;
+                        let startX; let scrollLeft;
+                        container.style.cursor = 'grab';
+                        container.addEventListener('pointerdown', (e) => {
+                            isDown = true;
+                            container.setPointerCapture && container.setPointerCapture(e.pointerId);
+                            startX = e.clientX;
+                            scrollLeft = container.scrollLeft;
+                            container.style.cursor = 'grabbing';
+                        });
+                        container.addEventListener('pointermove', (e) => {
+                            if (!isDown) return;
+                            const dx = e.clientX - startX;
+                            container.scrollLeft = scrollLeft - dx;
+                        });
+                        const stop = (e) => { if (!isDown) return; isDown = false; try { container.releasePointerCapture && container.releasePointerCapture(e.pointerId); } catch(e){} container.style.cursor = 'grab'; };
+                        container.addEventListener('pointerup', stop);
+                        container.addEventListener('pointercancel', stop);
+                        container.addEventListener('pointerleave', stop);
+                    });
+                }
 
         // --- Supprimer toutes les données ---
         function clearAll() {
