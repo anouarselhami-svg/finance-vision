@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Tracker — Finance Vision MA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <div class="max-w-4xl mx-auto p-6">
+        <nav class="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-slate-100 mb-4">
+            <div class="max-w-4xl mx-auto p-2 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <button class="md:hidden p-2" onclick="toggleMobileNav('weeklyNav')"><i data-lucide="menu"></i></button>
+                    <a href="index.html" class="px-3 py-1 rounded-md bg-slate-100">Accueil</a>
+                </div>
+                <div id="weeklyNav" class="hidden md:flex gap-2 items-center">
+                    <a href="tasks.html" class="px-3 py-2 rounded-md bg-slate-100">Tâches</a>
+                    <a href="weekly.html" class="px-3 py-2 rounded-md bg-emerald-600 text-white">Weekly</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-2xl font-bold flex items-center gap-3"><i data-lucide="calendar-week" class="w-6 h-6 text-emerald-600"></i> Weekly Tracker</h1>
+            <div class="flex gap-2">
+                <button onclick="location.href='index.html'" class="px-3 py-2 bg-slate-100 rounded">Retour</button>
+                <button onclick="resetWeekly()" class="px-3 py-2 bg-rose-50 text-rose-600 rounded">Reset</button>
+            </div>
+        </div>
+
+        <div id="weeklyContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6"></div>
+
+        <div id="weeklyCharts" class="flex gap-4"></div>
+    </div>
+
+<script>
+    const WEEK_DAYS = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+
+    // Monthly/weekly storage: map monthKey -> array of weeks (each week = array of 7 day objects)
+    const MONTH_STORAGE_KEY = 'fin_weekly_months_ma';
+    let monthlyData = JSON.parse(localStorage.getItem(MONTH_STORAGE_KEY)) || {};
+
+    // current viewing context
+    const now = new Date();
+    let currentMonthDate = new Date(now.getFullYear(), now.getMonth(), 1); // first day of month
+    let currentMonthKey = monthKeyForDate(currentMonthDate);
+    // compute week index that contains 'now' by default
+    function findWeekIndexForDate(monthDate, targetDate) {
+        for (let i = 0; i < 6; i++) {
+            const w = getWeekDates(monthDate, i);
+            if (!w || w.length !== 7) continue;
+            const start = w[0]; const end = w[6];
+            if (targetDate >= start && targetDate <= end) return i;
+        }
+        return 0;
+    }
+
+    let currentWeekIndex = 0; // will set below
+
+    // ensure month exists and load view week into `weekly`
+    ensureMonthExists(currentMonthKey);
+    currentWeekIndex = findWeekIndexForDate(currentMonthDate, now);
+    let weekly = loadWeekFromMonth(currentMonthKey, currentWeekIndex);
+
+    function saveWeekly() { localStorage.setItem('fin_weekly_ma', JSON.stringify(weekly)); }
+
+    function persistMonthly() {
+        // save the current weekly view back into monthlyData and persist
+        if (!monthlyData[currentMonthKey]) monthlyData[currentMonthKey] = createEmptyMonthWeeks();
+        monthlyData[currentMonthKey][currentWeekIndex] = deepCopy(weekly);
+        localStorage.setItem(MONTH_STORAGE_KEY, JSON.stringify(monthlyData));
+    }
+
+    function deepCopy(v) { return JSON.parse(JSON.stringify(v)); }
+
+    function monthKeyForDate(d) {
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    }
+
+    // Retourne la date du lundi pour la semaine contenant la date donnée
+    function getMondayOf(d) {
+        const dt = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        const jsDay = dt.getDay(); // 0 (Sun) .. 6 (Sat)
+        const delta = (jsDay + 6) % 7; // nombre de jours depuis lundi
+        dt.setDate(dt.getDate() - delta);
+        return dt;
+    }
+
+    // Retourne un tableau de 7 objets Date pour la semaine indexée à partir du lundi qui commence
+    // la grille de semaines du mois (la première semaine commence le lundi qui contient le 1er du mois)
+    function getWeekDates(monthDate, weekIndex) {
+        const firstOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+        const firstMonday = getMondayOf(firstOfMonth);
+        const start = new Date(firstMonday.getFullYear(), firstMonday.getMonth(), firstMonday.getDate() + weekIndex * 7);
+        const dates = [];
+        for (let i = 0; i < 7; i++) dates.push(new Date(start.getFullYear(), start.getMonth(), start.getDate() + i));
+        return dates;
+    }
+
+    function ensureMonthExists(key) {
+        if (!monthlyData[key]) {
+            monthlyData[key] = createEmptyMonthWeeks();
+            localStorage.setItem(MONTH_STORAGE_KEY, JSON.stringify(monthlyData));
+        }
+    }
+
+    function createEmptyWeek() {
+        return WEEK_DAYS.map(d => ({ day: d, tasks: [], habits: ['GYM','Lire','Meditation'] }));
+    }
+
+    function createEmptyMonthWeeks(count = 6) {
+        const weeks = [];
+        for (let i=0;i<count;i++) weeks.push(createEmptyWeek());
+        return weeks;
+    }
+
+    function loadWeekFromMonth(monthKey, weekIndex) {
+        ensureMonthExists(monthKey);
+        const weeks = monthlyData[monthKey];
+        if (!weeks[weekIndex]) {
+            // extend as needed
+            for (let i = weeks.length; i <= weekIndex; i++) weeks.push(createEmptyWeek());
+            monthlyData[monthKey] = weeks;
+            localStorage.setItem(MONTH_STORAGE_KEY, JSON.stringify(monthlyData));
+        }
+        return deepCopy(monthlyData[monthKey][weekIndex]);
+    }
+
+    // --- Mini confirm non-bloquante pour weekly.html ---
+    function createConfirmUI() {
+        if (document.getElementById('weeklyConfirm')) return;
+        const c = document.createElement('div');
+        c.id = 'weeklyConfirm';
+        c.className = 'fixed inset-0 flex items-end sm:items-center justify-center pointer-events-none z-50';
+        c.innerHTML = `
+            <div class="pointer-events-auto mb-6 sm:mb-0 bg-white shadow-lg rounded-xl border border-slate-100 px-4 py-3 w-[92%] sm:w-auto max-w-lg">
+                <div id="weeklyConfirmText" class="text-sm text-slate-700 mb-3"></div>
+                <div class="flex justify-end gap-2">
+                    <button id="weeklyConfirmCancel" class="px-3 py-1 rounded-lg bg-slate-100 text-slate-700">Annuler</button>
+                    <button id="weeklyConfirmOk" class="px-3 py-1 rounded-lg bg-emerald-600 text-white">Oui</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(c);
+    }
+
+    function showConfirm(message) {
+        createConfirmUI();
+        return new Promise(resolve => {
+            const c = document.getElementById('weeklyConfirm');
+            const text = document.getElementById('weeklyConfirmText');
+            const ok = document.getElementById('weeklyConfirmOk');
+            const cancel = document.getElementById('weeklyConfirmCancel');
+            text.innerText = message;
+            c.classList.remove('hidden');
+            c.style.pointerEvents = 'auto';
+
+            const cleanup = (val) => {
+                c.classList.add('hidden');
+                c.style.pointerEvents = 'none';
+                ok.onclick = null;
+                cancel.onclick = null;
+                resolve(val);
+            };
+
+            ok.onclick = () => cleanup(true);
+            cancel.onclick = () => cleanup(false);
+        });
+    }
+
+    // --- Toast léger ---
+    function createToastUI() {
+        if (document.getElementById('weeklyToast')) return;
+        const t = document.createElement('div');
+        t.id = 'weeklyToast';
+        t.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 hidden';
+        t.innerHTML = '<div class="bg-slate-900 text-white px-4 py-2 rounded-xl shadow"></div>';
+        document.body.appendChild(t);
+    }
+
+    function showToast(msg, ms = 1500) {
+        createToastUI();
+        const t = document.getElementById('weeklyToast');
+        t.firstElementChild.innerText = msg;
+        t.classList.remove('hidden');
+        setTimeout(() => t.classList.add('hidden'), ms);
+    }
+
+    function ensureWeekly() {
+        if (!weekly || !Array.isArray(weekly) || weekly.length !== 7) {
+            weekly = WEEK_DAYS.map(d => ({ day: d, tasks: [], habits: ['GYM','Lire','Meditation'] }));
+            saveWeekly();
+        }
+    }
+
+    // Toggle mobile nav visibility (used by responsive header)
+    function toggleMobileNav(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.toggle('hidden');
+    }
+
+    function renderMonthControls() {
+        const header = document.querySelector('.max-w-4xl > .flex');
+        if (!header) return;
+        // create month + week controls area
+        let ctrl = document.getElementById('monthWeekControls');
+        if (!ctrl) {
+            ctrl = document.createElement('div');
+            ctrl.id = 'monthWeekControls';
+            ctrl.className = 'flex items-center justify-between mb-4 gap-3';
+            header.parentNode.insertBefore(ctrl, header.nextSibling);
+        }
+
+        const monthName = currentMonthDate.toLocaleString('fr-FR', { month: 'long', year: 'numeric' });
+        const weeks = monthlyData[currentMonthKey] || [];
+        const weekButtons = weeks.map((_, i) => `<button onclick="setWeek(${i})" class="px-2 py-1 text-xs rounded ${i===currentWeekIndex? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-700'}">S${i+1}</button>`).join(' ');
+
+        ctrl.innerHTML = `
+            <div class="flex items-center gap-2">
+                <button onclick="changeMonth(-1)" class="px-2 py-1 bg-slate-100 rounded">◀</button>
+                <div class="font-semibold">${monthName}</div>
+                <button onclick="changeMonth(1)" class="px-2 py-1 bg-slate-100 rounded">▶</button>
+            </div>
+            <div class="flex items-center gap-2">${weekButtons}</div>
+        `;
+    }
+
+    function renderWeekly() {
+        ensureWeekly();
+        renderMonthControls();
+        const container = document.getElementById('weeklyContainer');
+        const weekDates = getWeekDates(currentMonthDate, currentWeekIndex);
+        container.innerHTML = weekly.map((w, idx) => {
+            const total = w.tasks.length + w.habits.length;
+            const completed = (w.tasks.filter(t=>t.completed).length + (w.habits.filter(h=> typeof h === 'object' ? h.completed : false).length || 0));
+            const pct = total === 0 ? 0 : Math.round((completed/total)*100);
+            const d = weekDates[idx];
+            const dateLabel = d ? d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : '';
+            return `
+                <div class="p-3 border rounded-xl bg-slate-50">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="font-bold">${w.day} <span class="text-xs text-slate-400 ml-2">${dateLabel}</span></div>
+                        <div class="text-sm text-slate-500">${pct}%</div>
+                    </div>
+                    <div class="mb-2 text-xs text-slate-400">Habits</div>
+                    ${w.habits.map((h, hi) => `<label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" onchange="toggleHabit(${idx},${hi}, this.checked)" ${ (typeof h === 'object' && h.completed) ? 'checked' : '' }/> <span>${typeof h === 'string' ? h : h.text}</span></label>`).join('')}
+                    <div class="mt-2 mb-1 text-xs text-slate-400">Tasks</div>
+                    ${w.tasks.map((t, ti) => `<label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" onchange="toggleWeeklyTask(${idx},${ti}, this.checked)" ${t.completed ? 'checked' : ''}/> <span>${t.title}</span></label>`).join('')}
+                    <div class="flex gap-2 mt-3">
+                        <input type="text" id="newTask-${idx}" placeholder="Nouvelle tâche..." class="flex-1 min-w-0 px-2 py-1 rounded border text-sm">
+                        <button onclick="addWeeklyTask(${idx})" class="px-2 py-0.5 text-xs h-8 bg-emerald-600 text-white rounded shrink-0">Ajouter</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        renderWeeklyCharts();
+        lucide.createIcons();
+    }
+
+    function toggleWeeklyTask(dayIndex, taskIndex, checked) {
+        weekly[dayIndex].tasks[taskIndex].completed = !!checked;
+        persistMonthly();
+        renderWeekly();
+    }
+
+    function toggleHabit(dayIndex, habitIndex, checked) {
+        if (typeof weekly[dayIndex].habits[habitIndex] === 'string') {
+            weekly[dayIndex].habits[habitIndex] = { text: weekly[dayIndex].habits[habitIndex], completed: !!checked };
+        } else {
+            weekly[dayIndex].habits[habitIndex].completed = !!checked;
+        }
+        persistMonthly();
+        renderWeekly();
+    }
+
+    function addWeeklyTask(dayIndex) {
+        const input = document.getElementById(`newTask-${dayIndex}`);
+        if (!input) return;
+        const text = input.value.trim();
+        if (!text) return;
+        weekly[dayIndex].tasks.push({ title: text, completed: false });
+        input.value = '';
+        persistMonthly();
+        renderWeekly();
+    }
+
+    function renderWeeklyCharts() {
+        const charts = document.getElementById('weeklyCharts');
+        if (!charts) return;
+        const bars = weekly.map(w => {
+            const total = w.tasks.length + (w.habits.length || 0);
+            const completed = (w.tasks.filter(t=>t.completed).length + (w.habits.filter(h=> (typeof h === 'object' ? h.completed : false)).length || 0));
+            const pct = total === 0 ? 0 : Math.round((completed/total)*100);
+            return { day: w.day, total, completed, pct };
+        });
+
+        const totalTasks = weekly.reduce((s,w)=>s + w.tasks.length + (w.habits.length || 0),0);
+        const totalCompleted = weekly.reduce((s,w)=>s + w.tasks.filter(t=>t.completed).length + (w.habits.filter(h=> (typeof h === 'object' ? h.completed : false)).length || 0),0);
+        const overallPct = totalTasks === 0 ? 0 : Math.round((totalCompleted/totalTasks)*100);
+
+        // SVG bar chart
+        const chartH = 140;
+        const gap = 12;
+        const barW = 36;
+        const chartW = Math.max(300, bars.length * (barW + gap));
+
+        const svgBars = bars.map((b, i) => {
+            const h = Math.max(4, Math.round((b.pct / 100) * chartH));
+            const x = i * (barW + gap);
+            const y = chartH - h;
+            return `<g transform="translate(${x},0)"><rect class="bar-rect" x="0" y="${y}" width="${barW}" height="${h}" rx="6" fill="#10b981" style="transition: all 300ms ease"/></g>`;
+        }).join('');
+
+        const svgCounts = bars.map((b, i) => {
+            const h = Math.max(4, Math.round((b.pct / 100) * chartH));
+            const x = i * (barW + gap) + (barW / 2);
+            const y = chartH - h - 8;
+            return `<text x="${x}" y="${Math.max(12, y)}" font-size="11" text-anchor="middle" fill="#0f172a" font-weight="700">${b.pct}%</text>`;
+        }).join('');
+
+        const svgLabels = bars.map((b, i) => {
+            const x = i * (barW + gap) + (barW / 2);
+            return `<text x="${x}" y="${chartH + 20}" font-size="11" text-anchor="middle" fill="#475569">${b.day.slice(0,3)}</text>`;
+        }).join('');
+
+        const svg = `<svg width="100%" viewBox="0 0 ${chartW + 20} ${chartH + 50}" preserveAspectRatio="xMidYMid meet"><g transform="translate(10,0)">${svgBars}${svgCounts}${svgLabels}</g></svg>`;
+
+        const barHtml = `<div class="w-1/2 p-2 bg-white rounded-xl border"><div class="text-sm font-bold mb-2">Load par jour</div>${svg}</div>`;
+        const donutHtml = `<div class="w-1/2 p-2 bg-white rounded-xl border flex flex-col items-center"><div class="text-sm font-bold mb-2">Semaine</div><div class="relative w-32 h-32"><svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90"><circle cx="18" cy="18" r="15.9" fill="transparent" stroke="#e5e7eb" stroke-width="3.5" /><circle cx="18" cy="18" r="15.9" fill="transparent" stroke="#10b981" stroke-width="3.5" stroke-dasharray="${overallPct} ${100-overallPct}" stroke-dashoffset="0" /></svg><div class="absolute inset-0 flex flex-col items-center justify-center"><div class="text-sm font-bold">${overallPct}%</div><div class="text-xs text-slate-500">Complété</div></div></div></div>`;
+
+        charts.innerHTML = barHtml + donutHtml;
+    }
+
+    // Navigation helpers
+    function changeMonth(offset) {
+        currentMonthDate = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + offset, 1);
+        currentMonthKey = monthKeyForDate(currentMonthDate);
+        ensureMonthExists(currentMonthKey);
+        // clamp week index
+        currentWeekIndex = Math.min(currentWeekIndex, (monthlyData[currentMonthKey] || []).length - 1);
+        weekly = loadWeekFromMonth(currentMonthKey, currentWeekIndex);
+        renderWeekly();
+    }
+
+    function setWeek(i) {
+        currentWeekIndex = i;
+        weekly = loadWeekFromMonth(currentMonthKey, currentWeekIndex);
+        renderWeekly();
+    }
+
+    async function resetWeekly() {
+        const ok = await showConfirm('Voulez-vous réinitialiser le Weekly tracker ?');
+        if (!ok) return;
+        weekly = WEEK_DAYS.map(d => ({ day: d, tasks: [], habits: ['GYM','Lire','Meditation'] }));
+        saveWeekly();
+        renderWeekly();
+        showToast('Weekly réinitialisé.');
+    }
+
+    window.onload = () => { renderWeekly(); lucide.createIcons(); };
+</script>
+</body>
+</html>

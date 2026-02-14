@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Vision</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>" type="image/svg+xml">
+    <!-- Tailwind CSS pour le design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen pb-20">
+
+    <div class="max-w-6xl mx-auto p-4 md:p-8">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div>
+                <h1 class="text-3xl font-extrabold tracking-tight flex items-center gap-3">
+                    <div class="p-2 bg-emerald-600 rounded-xl text-white shadow-lg">
+                        <i data-lucide="wallet"></i>
+                    </div>
+                    Finance Vision
+                </h1>
+                <p class="text-slate-500 mt-1">Gestion intelligente en Dirhams Marocains.</p>
+            </div>
+            <button onclick="location.href='weekly.html'" id="weeklyBtn" class="ml-3 flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl hover:bg-emerald-100 transition-all shadow-sm">
+                <i data-lucide="calendar" class="w-5 h-5"></i>
+                <span>Weekly Tracker</span>
+            </button>
+        </header>
+
+        <!-- Navigation responsive -->
+        <nav class="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-slate-100 mb-6">
+            <div class="max-w-6xl mx-auto p-2 md:p-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <button class="md:hidden p-2" onclick="toggleMobileNav('mainNav')"><i data-lucide="menu"></i></button>
+                    <a href="index.html" class="px-3 py-1 rounded-md bg-emerald-600 text-white">Accueil</a>
+                </div>
+                <div id="mainNav" class="hidden md:flex gap-2 items-center">
+                    <a href="tasks.html" class="px-3 py-2 rounded-md bg-slate-100">Tâches</a>
+                    <a href="weekly.html" class="px-3 py-2 rounded-md bg-slate-100">Weekly</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Cartes Statistiques -->
+        <div id="expenseAlert" class="hidden mb-6"></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8" id="statsGrid">
+            <!-- Injecté par JS -->
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Colonne Gauche -->
+            <div class="lg:col-span-4 space-y-6">
+                <!-- Formulaire -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+                        <i data-lucide="plus-circle" class="text-emerald-600"></i> Ajouter un flux
+                    </h2>
+                    <div class="flex bg-slate-100 p-1 rounded-xl mb-4">
+                        <button onclick="setType('income')" id="typeBtnIncome" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white shadow-sm text-emerald-600">Revenu</button>
+                        <button onclick="setType('expense')" id="typeBtnExpense" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500">Dépense</button>
+                    </div>
+                    <div class="space-y-4">
+                        <input type="text" id="descInput" placeholder="Description (ex: Loyer...)" class="w-full px-4 py-2 bg-slate-50 rounded-xl border-none outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                        <div class="grid grid-cols-2 gap-4">
+                            <input type="number" id="amountInput" placeholder="Montant DH" class="w-full px-4 py-2 bg-slate-50 rounded-xl border-none outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                            <input type="date" id="dateInput" class="w-full px-4 py-2 bg-slate-50 rounded-xl border-none text-sm text-slate-500">
+                        </div>
+                        <select id="catInput" class="w-full px-4 py-2 bg-slate-50 rounded-xl border-none text-sm"></select>
+                        <button onclick="addTransaction()" class="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg transition-all active:scale-95">Enregistrer</button>
+                        <button onclick="clearAll()" class="w-full mt-2 py-2 bg-rose-50 text-rose-600 rounded-xl font-semibold border border-rose-100 hover:bg-rose-100 transition-all">Clear All (Supprimer tout)</button>
+                    </div>
+                </div>
+
+                <!-- Graphique -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h2 class="text-lg font-bold mb-6 flex items-center gap-2">
+                        <i data-lucide="pie-chart" class="text-emerald-600"></i> Répartition (MAD)
+                    </h2>
+                    <div id="chartContainer" class="flex flex-col items-center">
+                        <!-- SVG injecté par JS -->
+                    </div>
+                    <div id="incomeChartContainer" class="flex flex-col items-center mt-6">
+                        <!-- SVG revenus injecté par JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Colonne Droite -->
+            <div class="lg:col-span-8 space-y-6">
+                <!-- Plan d'épargne / Objectif -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+                        <i data-lucide="target" class="text-emerald-600"></i> Plan d'épargne (Objectif mensuel)
+                    </h2>
+                    <div class="mb-4 flex gap-2">
+                        <input type="text" id="goalName" placeholder="Nom de l'objectif (ex: Vacances)" class="flex-1 px-4 py-2 bg-slate-50 rounded-xl text-sm outline-none">
+                        <input type="number" id="goalAmount" placeholder="Montant total DH" class="w-40 px-4 py-2 bg-slate-50 rounded-xl text-sm outline-none">
+                        <button onclick="createGoal()" class="px-4 py-2 bg-emerald-600 text-white rounded-xl">Créer</button>
+                    </div>
+                    <div id="goalsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+                </div>
+                
+                <!-- Filtres et Recherche -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="p-4">
+                        <h3 class="text-sm font-semibold text-slate-700 mb-2">flux ajoute</h3>
+                    </div>
+                    <div class="p-4 border-b flex flex-col sm:flex-row gap-4 items-center">
+                        <div class="relative flex-1 w-full">
+                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
+                            <input type="text" id="searchInput" oninput="render()" placeholder="Rechercher une opération..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border-none rounded-xl text-sm outline-none">
+                        </div>
+                        <div class="flex gap-1 p-1 bg-slate-100 rounded-lg">
+                            <button onclick="setFilter('all')" id="filterAll" class="px-3 py-1.5 text-[10px] font-bold rounded-md uppercase bg-white text-emerald-600 shadow-sm">Tout</button>
+                            <button onclick="setFilter('income')" id="filterIncome" class="px-3 py-1.5 text-[10px] font-bold rounded-md uppercase text-slate-500">Entrées</button>
+                            <button onclick="setFilter('expense')" id="filterExpense" class="px-3 py-1.5 text-[10px] font-bold rounded-md uppercase text-slate-500">Sorties</button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <tbody id="transactionList" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- To-Do List -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+                        <i data-lucide="list-todo" class="text-emerald-600"></i> Rappels & Objectifs
+                    </h2>
+                    <div class="flex gap-2 mb-6">
+                        <input type="text" id="todoInput" placeholder="Ajouter une tâche..." class="flex-1 px-4 py-2 bg-slate-50 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500">
+                        <button onclick="addTodo()" class="p-2 bg-emerald-600 text-white rounded-xl"><i data-lucide="plus"></i></button>
+                    </div>
+                    <div id="todoList" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const EXPENSE_WARNING_RATIO = 0.85; // si dépenses >= 85% des revenus afficher alerte
+        const CATEGORIES = {
+            income: ['Salaire', 'Freelance', 'Cadeau', 'Investissement', 'Vente', 'Autre'],
+            expense: ['Loyer', 'Alimentation', 'Transport', 'Loisirs', 'Santé', 'Shopping', 'Abonnements', 'Impôts', 'Autre']
+        };
+        const COLORS = ['#10b981', '#4f46e5', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#64748b'];
+
+        // --- État ---
+        let transactions = JSON.parse(localStorage.getItem('fin_trans_ma')) || [];
+        let todos = JSON.parse(localStorage.getItem('fin_todos_ma')) || [];
+        let goals = JSON.parse(localStorage.getItem('fin_goals_ma')) || [];
+        const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+        // Weekly tracker state
+        const WEEK_DAYS = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+        let weekly = JSON.parse(localStorage.getItem('fin_weekly_ma')) || WEEK_DAYS.map(d => ({ day: d, tasks: [], habits: [] }));
+        let currentType = 'income';
+        let filterType = 'all';
+
+        // --- Initialisation ---
+        async function init() {
+            document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
+            updateCategorySelect();
+            addEnterKeyHandler();
+            render();
+            lucide.createIcons();
+            addCoachMessage('assistant', "Bonjour ! Je suis votre coach financier expert pour le Maroc. Comment puis-je vous aider ?");
+        }
+
+        function setType(type) {
+            currentType = type;
+            document.getElementById('typeBtnIncome').className = type === 'income' ? 'flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white shadow-sm text-emerald-600' : 'flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500';
+            document.getElementById('typeBtnExpense').className = type === 'expense' ? 'flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white shadow-sm text-emerald-600' : 'flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500';
+            updateCategorySelect();
+        }
+
+        function setFilter(filter) {
+            filterType = filter;
+            ['filterAll', 'filterIncome', 'filterExpense'].forEach(id => {
+                const btn = document.getElementById(id);
+                const isActive = id === 'filter' + filter.charAt(0).toUpperCase() + filter.slice(1);
+                btn.className = isActive ? 'px-3 py-1.5 text-[10px] font-bold rounded-md uppercase bg-white text-emerald-600 shadow-sm' : 'px-3 py-1.5 text-[10px] font-bold rounded-md uppercase text-slate-500';
+            });
+            render();
+        }
+
+        function updateCategorySelect() {
+            const select = document.getElementById('catInput');
+            select.innerHTML = CATEGORIES[currentType].map(cat => `<option value="${cat}">${cat}</option>`).join('');
+        }
+
+        function formatMAD(val) {
+            return new Intl.NumberFormat('fr-MA', { style: 'currency', currency: 'MAD' }).format(val);
+        }
+
+        // --- Gestion Données ---
+        function addTransaction() {
+            const desc = document.getElementById('descInput').value;
+            const amount = parseFloat(document.getElementById('amountInput').value);
+            const date = document.getElementById('dateInput').value;
+            const category = document.getElementById('catInput').value;
+
+            if (!desc || isNaN(amount)) return;
+
+            transactions.unshift({ id: crypto.randomUUID(), description: desc, amount: Math.abs(amount), date, category, type: currentType });
+            document.getElementById('descInput').value = '';
+            document.getElementById('amountInput').value = '';
+            save();
+            render();
+        }
+
+        function deleteTransaction(id) {
+            transactions = transactions.filter(t => t.id !== id);
+            save();
+            render();
+            showToast('Transaction supprimée.');
+        }
+
+        function addTodo() {
+            const text = document.getElementById('todoInput').value;
+            if (!text) return;
+            todos.unshift({ id: crypto.randomUUID(), text, completed: false });
+            document.getElementById('todoInput').value = '';
+            save();
+            render();
+        }
+
+        function toggleTodo(id) {
+            todos = todos.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+            save();
+            render();
+        }
+
+        function deleteTodo(id) {
+            todos = todos.filter(t => t.id !== id);
+            save();
+            render();
+            showToast('Rappel supprimé.');
+        }
+
+        function save() {
+            localStorage.setItem('fin_trans_ma', JSON.stringify(transactions));
+            localStorage.setItem('fin_todos_ma', JSON.stringify(todos));
+            localStorage.setItem('fin_goals_ma', JSON.stringify(goals));
+            localStorage.setItem('fin_weekly_ma', JSON.stringify(weekly));
+        }
+
+        // --- Raccourci: Enregistrer au clavier (Entrée) ---
+        function addEnterKeyHandler() {
+            const ids = ['descInput', 'amountInput', 'dateInput', 'catInput'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addTransaction();
+                    }
+                });
+            });
+        }
+
+        // Toggle mobile nav visibility (used by responsive header)
+        function toggleMobileNav(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.classList.toggle('hidden');
+        }
+
+        // --- Supprimer toutes les données ---
+        function clearAll() {
+            showConfirm('Voulez‑vous vraiment supprimer toutes les données (transactions et tâches) ?')
+                .then(ok => {
+                    if (!ok) return;
+                    transactions = [];
+                    todos = [];
+                    save();
+                    render();
+                    showToast('Toutes les données ont été supprimées.');
+                });
+        }
+
+        // --- Mini confirmation non-bloquante et toast ---
+        function createConfirmUI() {
+            if (document.getElementById('miniConfirm')) return;
+            const c = document.createElement('div');
+            c.id = 'miniConfirm';
+            c.className = 'fixed inset-0 flex items-end sm:items-center justify-center pointer-events-none z-50';
+            c.innerHTML = `
+                <div class="pointer-events-auto mb-6 sm:mb-0 bg-white shadow-lg rounded-xl border border-slate-100 px-4 py-3 w-[92%] sm:w-auto max-w-lg">
+                    <div id="miniConfirmText" class="text-sm text-slate-700 mb-3"></div>
+                    <div class="flex justify-end gap-2">
+                        <button id="miniConfirmCancel" class="px-3 py-1 rounded-lg bg-slate-100 text-slate-700">Annuler</button>
+                        <button id="miniConfirmOk" class="px-3 py-1 rounded-lg bg-rose-600 text-white">Oui</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(c);
+        }
+
+        function showConfirm(message) {
+            createConfirmUI();
+            return new Promise(resolve => {
+                const c = document.getElementById('miniConfirm');
+                const text = document.getElementById('miniConfirmText');
+                const ok = document.getElementById('miniConfirmOk');
+                const cancel = document.getElementById('miniConfirmCancel');
+                text.innerText = message;
+                c.classList.remove('hidden');
+                // enable pointer events while visible
+                c.style.pointerEvents = 'auto';
+
+                const cleanup = (val) => {
+                    c.classList.add('hidden');
+                    c.style.pointerEvents = 'none';
+                    ok.onclick = null;
+                    cancel.onclick = null;
+                    resolve(val);
+                };
+
+                ok.onclick = () => cleanup(true);
+                cancel.onclick = () => cleanup(false);
+            });
+        }
+
+        function createToastUI() {
+            if (document.getElementById('miniToast')) return;
+            const t = document.createElement('div');
+            t.id = 'miniToast';
+            t.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 z-50 hidden';
+            t.innerHTML = '<div class="bg-slate-900 text-white px-4 py-2 rounded-xl shadow">' + '</div>';
+            document.body.appendChild(t);
+        }
+
+        function showToast(msg, ms = 1800) {
+            createToastUI();
+            const t = document.getElementById('miniToast');
+            t.firstElementChild.innerText = msg;
+            t.classList.remove('hidden');
+            setTimeout(() => t.classList.add('hidden'), ms);
+        }
+
+        // --- Rendu UI ---
+        function render() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = transactions.filter(t => {
+                const matchType = filterType === 'all' || t.type === filterType;
+                const matchSearch = t.description.toLowerCase().includes(search);
+                return matchType && matchSearch;
+            });
+
+            // Stats
+            const inc = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+            const exp = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+            const bal = inc - exp;
+            const rate = inc > 0 ? ((bal / inc) * 100).toFixed(1) : 0;
+
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = `
+                ${statCard('Revenus', inc, 'trending-up', 'text-emerald-600', 'bg-emerald-50')}
+                ${statCard('Dépenses', exp, 'trending-down', 'text-rose-600', 'bg-rose-50')}
+                ${statCard('Solde', bal, 'wallet', bal >= 0 ? 'text-emerald-600' : 'text-rose-600', 'bg-emerald-50')}
+                ${statCard('Épargne', rate + '%', 'pie-chart', 'text-indigo-600', 'bg-indigo-50', false)}
+            `;
+
+                // Vérifier si on doit afficher une alerte dépenses vs revenus
+                checkExpensesAlert(inc, exp);
+
+            // List
+            const list = document.getElementById('transactionList');
+            list.innerHTML = filtered.map(t => `
+                <tr class="group hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4 flex items-center gap-3">
+                        <div class="p-2 rounded-lg ${t.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}">
+                            <i data-lucide="${t.type === 'income' ? 'arrow-up-right' : 'arrow-down-right'}" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-slate-800 text-sm">${t.description}</div>
+                            <div class="text-[10px] text-slate-400 font-semibold uppercase">${t.category} • ${t.date}</div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-right font-black text-sm ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}">
+                        ${t.type === 'income' ? '+' : '-'}${formatMAD(t.amount)}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="deleteTransaction('${t.id}')" title="Supprimer" class="text-rose-500 hover:text-rose-700 p-2 rounded-md">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // To-Dos
+            const tlist = document.getElementById('todoList');
+            tlist.innerHTML = todos.map(t => `
+                <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl group hover:bg-emerald-50 border border-transparent hover:border-emerald-100 transition-all">
+                    <button onclick="toggleTodo('${t.id}')" class="flex items-center gap-3 text-left overflow-hidden">
+                        <i data-lucide="${t.completed ? 'check-circle-2' : 'circle'}" class="w-4 h-4 ${t.completed ? 'text-emerald-500' : 'text-slate-300'}"></i>
+                        <span class="text-sm truncate ${t.completed ? 'line-through text-slate-400' : 'text-slate-700 font-medium'}">${t.text}</span>
+                    </button>
+                    <button onclick="deleteTodo('${t.id}')" title="Supprimer" class="text-rose-500 hover:text-rose-700 p-2 rounded-md">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            renderChart(exp);
+            renderIncomeChart(inc);
+            renderGoals();
+            lucide.createIcons();
+        }
+
+        function statCard(title, val, icon, color, bg, isCurr = true) {
+            return `
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 transition-all hover:shadow-md group">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">${title}</span>
+                        <div class="p-2 rounded-xl ${bg} ${color} group-hover:scale-110 transition-transform"><i data-lucide="${icon}" class="w-4 h-4"></i></div>
+                    </div>
+                    <div class="text-2xl font-black tracking-tight ${color}">${isCurr ? formatMAD(val) : val}</div>
+                </div>
+            `;
+        }
+
+        function renderChart(totalExp) {
+            const container = document.getElementById('chartContainer');
+            const expenses = transactions.filter(t => t.type === 'expense');
+            if (expenses.length === 0) {
+                container.innerHTML = '<div class="py-12 text-center text-slate-300 text-xs italic">Pas de données</div>';
+                return;
+            }
+
+            const groups = expenses.reduce((acc, t) => {
+                acc[t.category] = (acc[t.category] || 0) + t.amount;
+                return acc;
+            }, {});
+
+            const stats = Object.keys(groups).map((cat, i) => ({
+                name: cat, value: groups[cat], percentage: (groups[cat] / totalExp) * 100, color: COLORS[i % COLORS.length]
+            })).sort((a,b) => b.value - a.value);
+
+            let circles = '';
+            let totalPerc = 0;
+            stats.forEach(s => {
+                circles += `<circle cx="18" cy="18" r="15.9" fill="transparent" stroke="${s.color}" stroke-width="3.5" stroke-dasharray="${s.percentage} ${100 - s.percentage}" stroke-dashoffset="${-totalPerc}" />`;
+                totalPerc += s.percentage;
+            });
+
+            container.innerHTML = `
+                <div class="relative w-48 h-48 mb-6">
+                    <svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90">${circles}<circle cx="18" cy="18" r="12" fill="white" /></svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span class="text-[10px] text-slate-400 font-bold uppercase">Total</span>
+                        <span class="text-xs font-bold text-slate-800">${formatMAD(totalExp)}</span>
+                    </div>
+                </div>
+                <div class="w-full space-y-2">
+                    ${stats.map(s => `<div class="flex items-center justify-between text-[11px]"><div class="flex items-center gap-2"><div class="w-2 h-2 rounded-full" style="background:${s.color}"></div><span class="font-semibold text-slate-600">${s.name}</span></div><span class="text-slate-400">${s.percentage.toFixed(0)}%</span></div>`).join('')}
+                </div>
+            `;
+        }
+
+        // --- Gestion des objectifs et affichage mensuel ---
+        function createGoal() {
+            const name = document.getElementById('goalName').value.trim();
+            const amount = parseFloat(document.getElementById('goalAmount').value);
+            if (!name || isNaN(amount) || amount <= 0) return;
+            const id = crypto.randomUUID();
+            const months = Array(12).fill(0); // montant épargné par mois
+            goals.unshift({ id, name, total: amount, months });
+            document.getElementById('goalName').value = '';
+            document.getElementById('goalAmount').value = '';
+            save();
+            renderGoals();
+        }
+
+        function renderGoals() {
+            const c = document.getElementById('goalsContainer');
+            if (!c) return;
+            if (goals.length === 0) { c.innerHTML = '<div class="text-slate-400 italic text-sm">Aucun objectif</div>'; return; }
+            c.innerHTML = goals.map(g => {
+                const perMonth = (g.total / 12).toFixed(2);
+                return `
+                    <div class="p-3 border rounded-xl bg-slate-50">
+                        <div class="flex items-center justify-between mb-2">
+                            <div>
+                                <div class="font-bold">${g.name}</div>
+                                <div class="text-xs text-slate-500">Objectif: ${formatMAD(g.total)} — Besoin par mois: ${formatMAD(perMonth)}</div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="deleteGoal('${g.id}')" class="text-rose-500 p-1 rounded">Supprimer</button>
+                                <button onclick="sendGoalToWeekly('${g.id}')" class="text-emerald-600 p-1 rounded">Envoyer au Weekly</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-xs">
+                            ${MONTHS.map((m, i) => `
+                                <div class="p-2 bg-white rounded-lg border flex flex-col items-center">
+                                    <div class="text-[11px] font-semibold">${m}</div>
+                                    <input type="number" onchange="updateGoalMonth('${g.id}', ${i}, this.value)" value="${g.months[i] || 0}" class="w-full mt-1 text-sm px-2 py-1 rounded border text-right" />
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function updateGoalMonth(goalId, monthIndex, value) {
+            const g = goals.find(x => x.id === goalId);
+            if (!g) return;
+            const v = parseFloat(value) || 0;
+            g.months[monthIndex] = v;
+            save();
+            renderGoals();
+        }
+
+        function deleteGoal(id) {
+            goals = goals.filter(g => g.id !== id);
+            save();
+            renderGoals();
+        }
+
+        // --- Weekly tracker functions ---
+        function ensureWeekly() {
+            if (!weekly || !Array.isArray(weekly) || weekly.length !== 7) {
+                weekly = WEEK_DAYS.map(d => ({ day: d, tasks: [], habits: ['GYM','Lire','Meditation'] }));
+                save();
+            }
+        }
+
+        function sendGoalToWeekly(goalId) {
+            ensureWeekly();
+            const g = goals.find(x => x.id === goalId);
+            if (!g) return;
+            weekly.forEach(w => {
+                w.tasks.push({ title: `Contribuer: ${g.name}`, completed: false });
+            });
+            save();
+            renderWeekly();
+            showToast('Objectif envoyé au Weekly.');
+        }
+
+        function renderWeekly() {
+            ensureWeekly();
+            const container = document.getElementById('weeklyContainer');
+            if (!container) return;
+            container.innerHTML = weekly.map((w, idx) => {
+                const total = w.tasks.length + w.habits.length;
+                const completed = (w.tasks.filter(t=>t.completed).length + (w.habits.filter(h=>h.completed).length || 0));
+                const pct = total === 0 ? 0 : Math.round((completed/total)*100);
+                return `
+                    <div class="p-3 border rounded-xl bg-slate-50">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="font-bold">${w.day}</div>
+                            <div class="text-sm text-slate-500">${pct}%</div>
+                        </div>
+                        <div class="mb-2 text-xs text-slate-400">Habits</div>
+                        ${w.habits.map((h, hi) => `<label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" onchange="toggleHabit(${idx},${hi}, this.checked)" ${h.completed ? 'checked' : ''}/> <span>${typeof h === 'string' ? h : h.text}</span></label>`).join('')}
+                        <div class="mt-2 mb-1 text-xs text-slate-400">Tasks</div>
+                        ${w.tasks.map((t, ti) => `<label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" onchange="toggleWeeklyTask(${idx},${ti}, this.checked)" ${t.completed ? 'checked' : ''}/> <span>${t.title}</span></label>`).join('')}
+                        <div class="flex gap-2 mt-3">
+                            <input type="text" id="newTask-${idx}" placeholder="Nouvelle tâche..." class="flex-1 min-w-0 px-2 py-1 rounded border text-sm">
+                            <button onclick="addWeeklyTask(${idx})" class="px-2 py-0.5 text-xs h-8 bg-emerald-600 text-white rounded shrink-0">Ajouter</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            renderWeeklyCharts();
+        }
+
+        function toggleWeeklyTask(dayIndex, taskIndex, checked) {
+            const w = weekly[dayIndex];
+            if (!w) return;
+            w.tasks[taskIndex].completed = !!checked;
+            save();
+            renderWeekly();
+        }
+
+        function toggleHabit(dayIndex, habitIndex, checked) {
+            const w = weekly[dayIndex];
+            if (!w) return;
+            // support both string and object representations
+            if (typeof w.habits[habitIndex] === 'string') {
+                w.habits[habitIndex] = { text: w.habits[habitIndex], completed: !!checked };
+            } else {
+                w.habits[habitIndex].completed = !!checked;
+            }
+            save();
+            renderWeekly();
+        }
+
+        function addWeeklyTask(dayIndex) {
+            const input = document.getElementById(`newTask-${dayIndex}`);
+            if (!input) return;
+            const text = input.value.trim();
+            if (!text) return;
+            weekly[dayIndex].tasks.push({ title: text, completed: false });
+            input.value = '';
+            save();
+            renderWeekly();
+        }
+
+        function renderWeeklyCharts() {
+            const charts = document.getElementById('weeklyCharts');
+            if (!charts) return;
+            const bars = weekly.map(w => {
+                const total = w.tasks.length + (w.habits.length || 0);
+                const completed = (w.tasks.filter(t=>t.completed).length + (w.habits.filter(h=> (typeof h === 'object' ? h.completed : false)).length || 0));
+                const pct = total === 0 ? 0 : Math.round((completed/total)*100);
+                return { day: w.day, total, completed, pct };
+            });
+
+            const totalTasks = weekly.reduce((s,w)=>s + w.tasks.length + (w.habits.length || 0),0);
+            const totalCompleted = weekly.reduce((s,w)=>s + w.tasks.filter(t=>t.completed).length + (w.habits.filter(h=> (typeof h === 'object' ? h.completed : false)).length || 0),0);
+            const overallPct = totalTasks === 0 ? 0 : Math.round((totalCompleted/totalTasks)*100);
+
+            // SVG bar chart
+            const chartH = 140;
+            const gap = 12;
+            const barW = 36;
+            const chartW = Math.max(300, bars.length * (barW + gap));
+
+            const svgBars = bars.map((b, i) => {
+                const h = Math.max(4, Math.round((b.pct / 100) * chartH));
+                const x = i * (barW + gap);
+                const y = chartH - h;
+                return `<g transform="translate(${x},0)"><rect class="bar-rect" x="0" y="${y}" width="${barW}" height="${h}" rx="6" fill="#10b981" style="transition: all 300ms ease"/></g>`;
+            }).join('');
+
+            const svgCounts = bars.map((b, i) => {
+                const h = Math.max(4, Math.round((b.pct / 100) * chartH));
+                const x = i * (barW + gap) + (barW / 2);
+                const y = chartH - h - 8;
+                return `<text x="${x}" y="${Math.max(12, y)}" font-size="11" text-anchor="middle" fill="#0f172a" font-weight="700">${b.pct}%</text>`;
+            }).join('');
+
+            const svgLabels = bars.map((b, i) => {
+                const x = i * (barW + gap) + (barW / 2);
+                return `<text x="${x}" y="${chartH + 20}" font-size="11" text-anchor="middle" fill="#475569">${b.day.slice(0,3)}</text>`;
+            }).join('');
+
+            const svg = `<svg width="100%" viewBox="0 0 ${chartW + 20} ${chartH + 50}" preserveAspectRatio="xMidYMid meet"><g transform="translate(10,0)">${svgBars}${svgCounts}${svgLabels}</g></svg>`;
+
+            const barHtml = `<div class="w-1/2 p-2 bg-white rounded-xl border"><div class="text-sm font-bold mb-2">Load par jour</div>${svg}</div>`;
+            const donutHtml = `<div class="w-1/2 p-2 bg-white rounded-xl border flex flex-col items-center"><div class="text-sm font-bold mb-2">Semaine</div><div class="relative w-32 h-32"><svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90"><circle cx="18" cy="18" r="15.9" fill="transparent" stroke="#e5e7eb" stroke-width="3.5" /><circle cx="18" cy="18" r="15.9" fill="transparent" stroke="#10b981" stroke-width="3.5" stroke-dasharray="${overallPct} ${100-overallPct}" stroke-dashoffset="0" /></svg><div class="absolute inset-0 flex flex-col items-center justify-center"><div class="text-sm font-bold">${overallPct}%</div><div class="text-xs text-slate-500">Complété</div></div></div></div>`;
+
+            charts.innerHTML = barHtml + donutHtml;
+        }
+
+        // --- Diagramme circulaire pour les revenus ---
+        function renderIncomeChart(totalInc) {
+            const container = document.getElementById('incomeChartContainer');
+            const incomes = transactions.filter(t => t.type === 'income');
+            if (incomes.length === 0) {
+                container.innerHTML = '<div class="py-8 text-center text-slate-300 text-xs italic">Pas de données</div>';
+                return;
+            }
+
+            const groups = incomes.reduce((acc, t) => {
+                acc[t.category] = (acc[t.category] || 0) + t.amount;
+                return acc;
+            }, {});
+
+            const stats = Object.keys(groups).map((cat, i) => ({
+                name: cat, value: groups[cat], percentage: (groups[cat] / totalInc) * 100, color: COLORS[i % COLORS.length]
+            })).sort((a,b) => b.value - a.value);
+
+            let circles = '';
+            let totalPerc = 0;
+            stats.forEach(s => {
+                circles += `<circle cx="18" cy="18" r="15.9" fill="transparent" stroke="${s.color}" stroke-width="3.5" stroke-dasharray="${s.percentage} ${100 - s.percentage}" stroke-dashoffset="${-totalPerc}" />`;
+                totalPerc += s.percentage;
+            });
+
+            container.innerHTML = `
+                <div class="relative w-44 h-44 mb-4">
+                    <svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90">${circles}<circle cx="18" cy="18" r="12" fill="white" /></svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span class="text-[10px] text-slate-400 font-bold uppercase">Revenus</span>
+                        <span class="text-sm font-bold text-slate-800">${formatMAD(totalInc)}</span>
+                    </div>
+                </div>
+                <div class="w-full space-y-2">
+                    ${stats.map(s => `<div class="flex items-center justify-between text-[11px]"><div class="flex items-center gap-2"><div class="w-2 h-2 rounded-full" style="background:${s.color}"></div><span class="font-semibold text-slate-600">${s.name}</span></div><span class="text-slate-400">${s.percentage.toFixed(0)}%</span></div>`).join('')}
+                </div>
+            `;
+        }
+
+        // --- Alerte dépenses vs revenus ---
+        function checkExpensesAlert(inc, exp) {
+            const box = document.getElementById('expenseAlert');
+            if (!box) return;
+            if (inc <= 0) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+            const ratio = inc > 0 ? exp / inc : 0;
+            if (ratio >= 1) {
+                box.innerHTML = `
+                    <div class="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-2xl shadow-sm text-rose-700 flex items-start justify-between">
+                        <div>
+                            <div class="font-bold">Attention — Dépenses supérieures aux revenus</div>
+                            <div class="text-sm">Vos dépenses totales ${formatMAD(exp)} dépassent vos revenus ${formatMAD(inc)}. Vérifiez vos opérations.</div>
+                        </div>
+                        <button onclick="document.getElementById('expenseAlert').classList.add('hidden')" class="ml-4 p-2 rounded bg-rose-100 text-rose-700">Fermer</button>
+                    </div>
+                `;
+                box.classList.remove('hidden');
+            } else if (ratio >= EXPENSE_WARNING_RATIO) {
+                const perc = Math.round(ratio * 100);
+                box.innerHTML = `
+                    <div class="bg-yellow-50 border-l-4 border-amber-400 p-4 rounded-r-2xl shadow-sm text-amber-800 flex items-start justify-between">
+                        <div>
+                            <div class="font-bold">Attention</div>
+                            <div class="text-sm">Vos dépenses représentent ${perc}% de vos revenus (${formatMAD(exp)} vs ${formatMAD(inc)}). Pensez à réduire certaines dépenses.</div>
+                        </div>
+                        <button onclick="document.getElementById('expenseAlert').classList.add('hidden')" class="ml-4 p-2 rounded bg-amber-100 text-amber-800">Fermer</button>
+                    </div>
+                `;
+                box.classList.remove('hidden');
+            } else {
+                box.classList.add('hidden');
+                box.innerHTML = '';
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

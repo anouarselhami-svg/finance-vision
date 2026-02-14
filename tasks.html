@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Listes de tâches — Finance Vision MA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <div class="max-w-4xl mx-auto p-6">
+    <nav class="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-slate-100 mb-4">
+      <div class="max-w-4xl mx-auto p-2 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <button class="md:hidden p-2" onclick="toggleMobileNav('tasksNav')"><i data-lucide="menu"></i></button>
+          <a href="index.html" class="px-3 py-1 rounded-md bg-slate-100">Accueil</a>
+        </div>
+        <div id="tasksNav" class="hidden md:flex gap-2 items-center">
+          <a href="tasks.html" class="px-3 py-2 rounded-md bg-emerald-600 text-white">Tâches</a>
+          <a href="weekly.html" class="px-3 py-2 rounded-md bg-slate-100">Weekly</a>
+        </div>
+      </div>
+    </nav>
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold flex items-center gap-3"><i data-lucide="list-check" class="w-6 h-6 text-emerald-600"></i> Listes de tâches</h1>
+      <div class="flex gap-2">
+        <button onclick="location.href='index.html'" class="px-3 py-2 bg-slate-100 rounded">Retour</button>
+        <button onclick="location.href='weekly.html'" class="px-3 py-2 bg-emerald-50 text-emerald-700 rounded">Weekly</button>
+      </div>
+    </div>
+
+    <div id="controls" class="flex items-center gap-3 mb-4"></div>
+
+    <div id="addForm" class="mb-4"></div>
+
+    <div id="tableWrap" class="bg-white rounded-xl border overflow-x-auto">
+      <table id="tasksTable" class="w-full text-sm table-auto">
+        <!-- rendered by JS -->
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // Storage key
+    const TASKS_KEY = 'fin_tasks_ma';
+
+    const now = new Date();
+    let currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    let tasksData = JSON.parse(localStorage.getItem(TASKS_KEY)) || {}; // monthKey -> {day: [tasks]}
+
+    function monthKey(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+    function daysInMonth(d) { return new Date(d.getFullYear(), d.getMonth()+1, 0).getDate(); }
+
+    function ensureMonth(key) { if (!tasksData[key]) tasksData[key] = {}; }
+
+    function save() { localStorage.setItem(TASKS_KEY, JSON.stringify(tasksData)); }
+
+    function changeMonth(dir) {
+      currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + dir, 1);
+      render();
+    }
+
+    function addTask() {
+      const day = parseInt(document.getElementById('newtask-day').value, 10);
+      const text = document.getElementById('newtask-text').value.trim();
+      if (!text) return;
+      const priority = document.getElementById('newtask-priority').value;
+      const category = document.getElementById('newtask-category').value.trim();
+      const notes = document.getElementById('newtask-notes').value.trim();
+      const key = monthKey(currentMonth);
+      ensureMonth(key);
+      tasksData[key][day] = tasksData[key][day] || [];
+      tasksData[key][day].push({ id: crypto.randomUUID(), text, done: false, priority: priority || 'Medium', status: 'Todo', category, notes });
+      document.getElementById('newtask-text').value = '';
+      document.getElementById('newtask-notes').value = '';
+      save(); render();
+    }
+
+    function toggleTask(dayIndex, id) {
+      const key = monthKey(currentMonth); if (!tasksData[key] || !tasksData[key][dayIndex]) return;
+      tasksData[key][dayIndex] = tasksData[key][dayIndex].map(t => {
+        if (t.id !== id) return t;
+        const updated = { ...t, done: !t.done };
+        // sync status with done flag
+        updated.status = updated.done ? 'Done' : (updated.status === 'Done' ? 'Todo' : updated.status || 'Todo');
+        return updated;
+      });
+      save(); render();
+    }
+
+    function deleteTask(dayIndex, id) {
+      const key = monthKey(currentMonth); if (!tasksData[key] || !tasksData[key][dayIndex]) return;
+      tasksData[key][dayIndex] = tasksData[key][dayIndex].filter(t => t.id !== id);
+      save(); render();
+    }
+
+    function updateTaskField(dayIndex, id, field, value) {
+      const key = monthKey(currentMonth); if (!tasksData[key] || !tasksData[key][dayIndex]) return;
+      tasksData[key][dayIndex] = tasksData[key][dayIndex].map(t => {
+        if (t.id !== id) return t;
+        const copy = { ...t };
+        copy[field] = value;
+        // keep done sync
+        if (field === 'status') copy.done = value === 'Done';
+        return copy;
+      });
+      save(); render();
+    }
+
+    function editNotes(dayIndex, id) {
+      const key = monthKey(currentMonth); if (!tasksData[key] || !tasksData[key][dayIndex]) return;
+      const t = tasksData[key][dayIndex].find(x => x.id === id);
+      if (!t) return;
+      const note = prompt('Notes', t.notes || '');
+      if (note === null) return;
+      tasksData[key][dayIndex] = tasksData[key][dayIndex].map(x => x.id === id ? { ...x, notes: note } : x);
+      save(); render();
+    }
+
+    function renderControls() {
+      const ctrl = document.getElementById('controls');
+      const mName = currentMonth.toLocaleString('fr-FR', { month: 'long', year: 'numeric' });
+      ctrl.innerHTML = `
+        <div class="flex items-center gap-2">
+          <button onclick="changeMonth(-1)" class="px-2 py-1 bg-slate-100 rounded">◀</button>
+          <div class="font-semibold">${mName}</div>
+          <button onclick="changeMonth(1)" class="px-2 py-1 bg-slate-100 rounded">▶</button>
+        </div>
+      `;
+    }
+
+    function renderAddForm() {
+      const wrap = document.getElementById('addForm');
+      const days = daysInMonth(currentMonth);
+      let dayOptions = '';
+      for (let d = 1; d <= days; d++) dayOptions += `<option value="${d}">${d}</option>`;
+      wrap.innerHTML = `
+        <div class="flex gap-2">
+          <select id="newtask-day" class="px-2 py-1 border rounded">${dayOptions}</select>
+          <input id="newtask-text" placeholder="Tâche..." class="flex-1 px-2 py-1 rounded border" />
+          <select id="newtask-priority" class="px-2 py-1 border rounded">
+            <option value="Low">Low</option>
+            <option value="Medium" selected>Medium</option>
+            <option value="High">High</option>
+          </select>
+          <input id="newtask-category" placeholder="Catégorie" class="px-2 py-1 rounded border" />
+          <input id="newtask-notes" placeholder="Notes" class="px-2 py-1 rounded border" />
+          <button onclick="addTask()" class="px-3 py-1 bg-emerald-600 text-white rounded">Ajouter</button>
+        </div>
+      `;
+    }
+
+    function render() {
+      renderControls();
+      renderAddForm();
+      const table = document.getElementById('tasksTable');
+      const key = monthKey(currentMonth);
+      ensureMonth(key);
+      const days = daysInMonth(currentMonth);
+      let rows = [];
+      for (let d = 1; d <= days; d++) {
+        const tasks = tasksData[key][d] || [];
+        for (const t of tasks) rows.push({ day: d, task: t });
+      }
+      let html = `
+        <thead class="text-left text-xs text-slate-500"><tr><th class="p-2">Date</th><th>Tâche</th><th class="text-center">Priorité</th><th class="text-center">Statut</th><th class="text-center">Catégorie</th><th class="text-center">Notes</th><th class="text-right p-2">Actions</th></tr></thead>
+        <tbody>
+      `;
+      if (rows.length === 0) {
+        html += `<tr><td class="p-4" colspan="7">Aucune tâche ce mois-ci.</td></tr>`;
+      } else {
+        for (const r of rows) {
+          const d = r.day; const t = r.task;
+          html += `
+            <tr class="border-t">
+              <td class="p-2">${d}</td>
+              <td class="p-2"><label class="flex items-center gap-2"><input type="checkbox" ${t.done? 'checked' : ''} onchange="toggleTask(${d},'${t.id}')"/> <span class="${t.done? 'line-through text-slate-400' : ''}">${escapeHtml(t.text)}</span></label></td>
+              <td class="p-2 text-center"><select onchange="updateTaskField(${d},'${t.id}','priority',this.value)" class="text-xs px-1 py-0.5 border rounded">
+                <option value="Low" ${t.priority==='Low' ? 'selected' : ''}>Low</option>
+                <option value="Medium" ${t.priority==='Medium' ? 'selected' : ''}>Medium</option>
+                <option value="High" ${t.priority==='High' ? 'selected' : ''}>High</option>
+              </select></td>
+              <td class="p-2 text-center"><select onchange="updateTaskField(${d},'${t.id}','status',this.value)" class="text-xs px-1 py-0.5 border rounded">
+                <option value="Todo" ${t.status==='Todo' ? 'selected' : ''}>Todo</option>
+                <option value="In Progress" ${t.status==='In Progress' ? 'selected' : ''}>In Progress</option>
+                <option value="Done" ${t.status==='Done' ? 'selected' : ''}>Done</option>
+              </select></td>
+              <td class="p-2 text-center"><input value="${escapeHtml(t.category||'')}" onchange="updateTaskField(${d},'${t.id}','category',this.value)" class="text-xs px-1 py-0.5 border rounded"/></td>
+              <td class="p-2 text-center"><button onclick="editNotes(${d},'${t.id}')" class="text-xs px-2 py-0.5 bg-slate-100 rounded">Voir/Edit</button></td>
+              <td class="p-2 text-right"><button onclick="deleteTask(${d},'${t.id}')" class="text-rose-500 text-xs ml-2">Suppr</button></td>
+            </tr>
+          `;
+        }
+      }
+      html += `</tbody>`;
+      table.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // Toggle mobile nav visibility (used by responsive header)
+    function toggleMobileNav(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.toggle('hidden');
+    }
+
+    window.onload = () => { render(); };
+  </script>
+</body>
+</html>
