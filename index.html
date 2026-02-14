@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
     <title>Finance Vision</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>" type="image/svg+xml">
     <!-- Tailwind CSS pour le design -->
@@ -35,16 +35,40 @@
             /* Increase hit targets */
             .p-2, .p-3, .p-4 { padding: 0.75rem !important; }
         }
-        /* Prevent horizontal overflow and ensure large elements scale to viewport */
-        html, body { max-width: 100%; overflow-x: hidden; box-sizing: border-box; -webkit-text-size-adjust: 100%; }
-        *, *:before, *:after { box-sizing: inherit; }
-        img, svg, canvas { max-width: 100%; height: auto; }
-        svg { width: 100%; height: auto; display: block; }
-        /* Make chart SVGs responsive (they use viewBox) */
-        #chartContainer svg, #incomeChartContainer svg { width: 100% !important; height: auto !important; }
-        /* Ensure tables and wide elements wrap */
+        </style>
+        <style>
+        /* Global fixes to prevent horizontal overflow and improve mobile rendering */
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body { max-width: 100%; overflow-x: hidden; -webkit-text-size-adjust: 100%; }
+        img, svg, iframe { max-width: 100%; height: auto; }
+        input, select, button, textarea { min-width: 0; }
+        header { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        /* Ensure grids collapse on very small screens */
+        @media (max-width: 420px) {
+            .grid { gap: 0.5rem !important; }
+            .text-3xl { font-size: 1.25rem !important; }
+            .max-w-6xl { padding-left: 0.5rem; padding-right: 0.5rem; }
+            .p-4 { padding: 0.5rem !important; }
+        }
+        </style>
+        <style>
+        /* Extra safety for elements that may overflow */
+        .max-w-6xl { width: 100% !important; }
+        .max-w-6xl > * { box-sizing: border-box; }
+        .grid, .flex { min-width: 0; }
         table { width: 100%; table-layout: fixed; }
-        .truncate { word-break: break-word; }
+        td, th { word-break: break-word; white-space: normal; }
+        svg, img { max-width: 100%; height: auto; }
+        .chart-svg { width: 100% !important; height: auto !important; }
+        /* make header elements wrap on small screens */
+        header .flex { flex-wrap: wrap; gap: 0.5rem; }
+        /* ensure inputs and selects don't force horizontal scroll */
+        input, select, textarea, button { min-width: 0; }
+        /* reduce large fixed paddings */
+        @media (max-width: 480px) {
+            .px-6 { padding-left: 1rem !important; padding-right: 1rem !important; }
+            .px-4 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+        }
         </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen pb-20">
