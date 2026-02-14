@@ -28,10 +28,6 @@
                 .p-4 { padding: 0.5rem !important; }
             }
             /* Horizontal sliding form fields */
-            @media (min-width: 641px) {
-                .h-scroll { overflow-x: visible; scroll-snap-type: none; -webkit-overflow-scrolling: auto; flex-wrap: wrap; }
-                .h-scroll > * { flex: 0 1 auto; max-width: none; }
-            }
             .h-scroll { display: flex; gap: 0.5rem; overflow-x: auto; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; padding: 0.25rem 0.5rem; }
             .h-scroll > * { scroll-snap-align: start; flex: 0 0 auto; }
             .h-scroll .h-item { min-width: 120px; }
@@ -261,8 +257,6 @@
 
         // Enable pointer-drag scrolling for horizontal scroll containers
         function enableHScrolls() {
-            // Skip initializing drag-to-scroll on desktop
-            if (window.matchMedia && window.matchMedia('(min-width: 641px)').matches) return;
             document.querySelectorAll('.h-scroll').forEach(container => {
                 if (container.__hScrollInit) return;
                 container.__hScrollInit = true;
