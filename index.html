@@ -37,6 +37,16 @@
         }
         </style>
         <style>
+        /* Reduce font sizes for inputs and titles on small screens */
+        @media (max-width: 640px) {
+            input, select, button, textarea, .h-scroll input, .h-scroll select, .todo-row input { font-size: 14px !important; }
+            .text-2xl { font-size: 1.15rem !important; }
+            .text-3xl { font-size: 1.25rem !important; }
+            .stat-value { font-size: 1rem !important; }
+            .h-item button { padding: 0.5rem 0.75rem !important; }
+        }
+        </style>
+        <style>
         /* Global fixes to prevent horizontal overflow and improve mobile rendering */
         *, *::before, *::after { box-sizing: border-box; }
         html, body { max-width: 100%; overflow-x: hidden; -webkit-text-size-adjust: 100%; }
@@ -77,6 +87,14 @@
         .h-scroll::-webkit-scrollbar { height: 8px; }
         .h-scroll::-webkit-scrollbar-thumb { background: rgba(15,23,42,0.12); border-radius: 999px; }
 
+        /* On small screens, stack .h-scroll items vertically instead of horizontal sliding */
+        @media (max-width: 640px) {
+            .h-scroll { flex-direction: column; gap: 0.5rem; padding: 0; }
+            .h-scroll > * { scroll-snap-align: none; flex: 1 1 auto; min-width: 0; width: 100%; }
+            .h-scroll .h-item { min-width: 0; }
+            .h-scroll .h-item.wide { min-width: 0; }
+        }
+
         /* Compact stats cards on small screens and force two per row */
         @media (max-width: 640px) {
             #statsGrid { grid-template-columns: repeat(2, 1fr) !important; }
@@ -84,6 +102,13 @@
             #statsGrid .stat-card .stat-title { font-size: 10px !important; }
             #statsGrid .stat-card .stat-value { font-size: 1rem !important; font-weight: 800 !important; }
             #statsGrid .stat-card .p-2 { padding: 0.35rem !important; }
+        }
+        /* Ensure todo input is visible on small screens and button doesn't take full width */
+        .todo-row { display: flex; gap: 0.5rem; align-items: center; }
+        .todo-row input { flex: 1 1 auto; min-width: 0; }
+        .todo-row button { flex: 0 0 auto; width: auto !important; }
+        @media (max-width: 640px) {
+            .todo-row input { font-size: 16px; }
         }
         </style>
 </head>
@@ -226,7 +251,7 @@
                     <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
                         <i data-lucide="list-todo" class="text-emerald-600"></i> Rappels & Objectifs
                     </h2>
-                    <div class="flex gap-2 mb-6">
+                    <div class="flex gap-2 mb-6 todo-row">
                         <input type="text" id="todoInput" placeholder="Ajouter une tâche..." class="flex-1 px-4 py-2 bg-slate-50 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500">
                         <button onclick="addTodo()" class="p-2 bg-emerald-600 text-white rounded-xl"><i data-lucide="plus"></i></button>
                     </div>
@@ -376,6 +401,7 @@
                         let startX; let scrollLeft;
                         container.style.cursor = 'grab';
                         container.addEventListener('pointerdown', (e) => {
+                            if (e.target && e.target.closest && e.target.closest('button,a,input,select,textarea,label')) return;
                             isDown = true;
                             container.setPointerCapture && container.setPointerCapture(e.pointerId);
                             startX = e.clientX;

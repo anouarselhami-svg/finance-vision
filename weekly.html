@@ -34,6 +34,12 @@
             .h-scroll .h-item.wide { min-width: 200px; }
             .h-scroll::-webkit-scrollbar { height: 8px; }
             .h-scroll::-webkit-scrollbar-thumb { background: rgba(15,23,42,0.12); border-radius: 999px; }
+            @media (max-width: 640px) {
+                .h-scroll { flex-direction: column; gap: 0.5rem; padding: 0; }
+                .h-scroll > * { scroll-snap-align: none; flex: 1 1 auto; min-width: 0; width: 100%; }
+                .h-scroll .h-item { min-width: 0; }
+                .h-scroll .h-item.wide { min-width: 0; }
+            }
             /* Ensure weekly charts wrap on small screens to avoid horizontal overflow */
             #weeklyCharts { display: flex; gap: 12px; flex-wrap: wrap; }
             #weeklyCharts > * { flex: 1 1 300px; min-width: 0; }
@@ -45,6 +51,14 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         body { font-family: 'Inter', sans-serif; }
     </style>
+        <style>
+            /* Reduce font sizes for inputs and titles on small screens */
+            @media (max-width: 640px) {
+                input, select, button, textarea, .h-scroll input, .h-scroll select { font-size: 14px !important; }
+                .text-2xl { font-size: 1.15rem !important; }
+                .h-item button { padding: 0.5rem 0.75rem !important; }
+            }
+        </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
     <div class="max-w-4xl mx-auto p-6">
@@ -250,6 +264,8 @@
                 let startX; let scrollLeft;
                 container.style.cursor = 'grab';
                 container.addEventListener('pointerdown', (e) => {
+                    // don't start dragging when interacting with controls inside the scroller
+                    if (e.target && e.target.closest && e.target.closest('button,a,input,select,textarea,label')) return;
                     isDown = true;
                     container.setPointerCapture && container.setPointerCapture(e.pointerId);
                     startX = e.clientX;
@@ -269,7 +285,10 @@
         }
 
     function renderMonthControls() {
-        const header = document.querySelector('.max-w-4xl > .flex');
+        // Prefer inserting directly after the title row under the Weekly Tracker heading
+        const titleRow = document.querySelector('div.flex.items-center.justify-between.mb-6');
+        // fallback: try previous selector if structure differs
+        const header = titleRow || document.querySelector('.max-w-4xl > .flex');
         if (!header) return;
         // create month + week controls area
         let ctrl = document.getElementById('monthWeekControls');
@@ -328,6 +347,20 @@
                 </div>
             `;
         }).join('');
+        // Initialize horizontal scrollers inside the freshly rendered content
+        enableHScrolls();
+
+        // Attach Enter key handler for quick add
+        container.querySelectorAll('[id^="newTask-"]').forEach(inp => {
+            inp.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const parts = inp.id.split('-');
+                    const idx = parseInt(parts[1], 10);
+                    if (!Number.isNaN(idx)) addWeeklyTask(idx);
+                }
+            });
+        });
         renderWeeklyCharts();
         lucide.createIcons();
     }
@@ -353,7 +386,8 @@
         if (!input) return;
         const text = input.value.trim();
         if (!text) return;
-        weekly[dayIndex].tasks.push({ title: text, completed: false });
+        // Add as a habit item (object with checkbox) so it appears with a checkbox
+        weekly[dayIndex].habits.push({ text: text, completed: false });
         input.value = '';
         persistMonthly();
         renderWeekly();
